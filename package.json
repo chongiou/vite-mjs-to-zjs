@@ -1,0 +1,23 @@
+{
+  "name": "vite-mjs-to-zjs",
+  "version": "1.0.0",
+  "description": "",
+  "license": "MIT",
+  "author": "chongiou <chongiou@qq.com>",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vite": "^6.1.0",
+    "vite-plugin-dts": "^4.5.0"
+  }
+}
