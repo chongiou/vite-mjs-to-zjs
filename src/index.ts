@@ -16,7 +16,6 @@ export interface PluginOption {
   alias?: Record<string, string>,
   /**
    * 删除该模块的导入语句
-   * @default ['zdjles']
    */
   removeImport?: string[]
   /**
@@ -101,7 +100,6 @@ export default function zjsPlugin(pluginOption: PluginOption = {}): Plugin {
 
 export type DefaultOption = typeof defaultOption
 const defaultOption = {
-  removeImport: ['zdjles'],
   removeSideEffectImport: true,
   output: {
     filename: 'index',
@@ -166,7 +164,7 @@ function handleImport(code: string, optionResolved: OptionResolved) {
   }
 
   // 删除自定义导入
-  if (optionResolved.removeImport.length) {
+  if (optionResolved.removeImport?.length) {
     const it = optionResolved.removeImport
     const regex = new RegExp(String.raw`import\s+([\s\S]*?)\s+from\s+['"](${it.join('|')})['"];`)
     code = code.replace(regex, '')
