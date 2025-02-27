@@ -24,7 +24,7 @@ export interface PluginOption {
    */
   removeSideEffectImport?: boolean
   /**
-   * 使用另一个 zjs文件 作为生成文件的基础模板, 生成的动作将作为最后一个动作添加
+   * 使用另一个 zjs文件 作为生成文件的基础模板
    */
   template?: {
     /**
@@ -32,7 +32,7 @@ export interface PluginOption {
      */
     filepath?: string
     /**
-     * 生成的动作插入的位置, 1插入为第一个动作, 2同理, 超出边界则插入为最后一个动作
+     * 生成的动作插入的位置, 例如 1 则插入为第 1 个动作, 2 同理, 超出边界则插入为最后一个动作
      * @default Infinity
      */
     insertTo?: number
