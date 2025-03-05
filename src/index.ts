@@ -244,8 +244,19 @@ function wrapZjs(code: string, optionResolved: OptionResolved) {
   const manifest = optionResolved.manifest
   const insertTo = optionResolved.template.insertTo
 
+ const exportsHelperString = `const exports = new Proxy({}, {
+    get(_target, key) {
+      zdjl.getVar(key)
+    },
+    set(_target, key, value) {
+      zdjl.setVar(key, value)
+      return true
+    }
+  })
+  zdjl.setVar('exports', exports)`
+
   const format: Record<string, any>[] = []
-  const action = { type: "运行JS代码", jsCode: `"use strict";\n${code}`, desc: "@vite", }
+  const action = { type: "运行JS代码", jsCode: `"use strict";\n${exportsHelperString}\n${code}`, desc: "@vite", }
 
   if (optionResolved.template.filepath) {
     const zjs = formatFrom({ filepath: optionResolved.template.filepath })
