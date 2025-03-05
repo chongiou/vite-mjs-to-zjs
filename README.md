@@ -102,3 +102,15 @@ export interface PluginOption {
 }
 ```
 
+## 已知问题
+### 无法处理动态导入
+vite默认会将动态导入(`import()`)拆分为单独的文件, 插件无法处理, 得到的文件内容不正确 
+### 解决方案
+**内联动态导入**
+1. 在 vite 配置中设置 `build.rollupOptions.output.inlineDynamicImports` 为 `true`
+   > 注意: 内联动态导入会将模块所有内容合并, 无法进行 tree-shaking 优化
+
+**从网络导入**
+1. 在 `build.rollupOptions.external` 中排除模块
+   > 插件会将 ESM 模块语法转为 CJS 模块语法, 排除模块后 zdjl 将从网络载入
+2. (可选)在插件选项 `alias` 中设置别名, 例如: `alias: {axios: 'https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js'}`
