@@ -69,6 +69,14 @@ export interface PluginOption {
      * @default true
      */
     pauseOnFail?: boolean,
+    /**
+     * 动作数量
+     */
+    count?: number | string,
+    /**
+     * 脚本描述
+     */
+    description?: string,
   }
 }
 
