@@ -1,8 +1,5 @@
 import type { Plugin } from 'vite'
 import type { Expand } from './utils'
-import { resolve } from 'node:path'
-import { writeFile } from 'node:fs/promises'
-import { logger } from './logger'
 import { formatFrom, mergeObject } from './utils'
 
 const plugin_name = 'vite-mjs-to-zjs'
@@ -43,6 +40,7 @@ export interface PluginOption {
   output?: {
     /**
      * 输出目录
+     * @deprecated 请使用 vite 配置的输出目录
      */
     outdir?: string
     /**
@@ -80,7 +78,7 @@ export interface PluginOption {
   }
 }
 
-export default function zjsPlugin(pluginOption: PluginOption = {}): Plugin {
+export default function plugin(pluginOption: PluginOption = {}): Plugin {
   const optionResolved = mergeObject(defaultOption, pluginOption) as OptionResolved
 
   if (!optionResolved.output?.formats?.length) {
@@ -96,11 +94,19 @@ export default function zjsPlugin(pluginOption: PluginOption = {}): Plugin {
         (config.build?.lib as any).fileName = optionResolved.output.filename
       }
     },
-    generateBundle(_normalizedOutputOptions, bundle) {
+    generateBundle(_, bundle) {
       Object.keys(bundle).forEach(filename => {
         const file = bundle[filename]
-        const code = (<any>file)['code']
-        processFile(code, optionResolved)
+        const code = (<any>file)['code'] as string | undefined
+        if (!code) return
+        const result = processFile(code, optionResolved)
+        result.forEach(item => {
+          this.emitFile({
+            type: 'asset',
+            fileName: item.filename,
+            source: item.code
+          })
+        })
       })
     }
   }
@@ -111,7 +117,6 @@ const defaultOption = {
   removeSideEffectImport: true,
   output: {
     filename: 'index',
-    outdir: resolve('./dist'),
     formats: ['zjs']
   },
   template: {
@@ -126,7 +131,8 @@ const defaultOption = {
 type OptionResolved = Expand<DefaultOption & PluginOption>
 
 function processFile(code: string, optionResolved: OptionResolved) {
-  const outdir = optionResolved.output.outdir
+  const result: { code: string, filename: string }[] = []
+
   const filename = optionResolved.output.filename
 
   code = handleImport(code, optionResolved)
@@ -135,23 +141,16 @@ function processFile(code: string, optionResolved: OptionResolved) {
   if (optionResolved.output?.formats?.includes('zjs')) {
     const processedScript = wrapZjs(code, optionResolved)
     const savefilename = `${filename}.zjs`
-    saveScriptToFile(processedScript, outdir, savefilename)
+    result.push({ code: processedScript, filename: savefilename })
   }
 
   if (optionResolved.output?.formats?.includes('cjs')) {
     const processedScript = wrapCjs(code)
     const savefilename = `${filename}.cjs`
-    saveScriptToFile(processedScript, outdir, savefilename)
+    result.push({ code: processedScript, filename: savefilename })
   }
-}
 
-function saveScriptToFile(content: string, outdir: string, filename: string) {
-  const filePath = `${outdir}/${filename}`
-  writeFile(filePath, content).catch(
-    err => {
-      logger.failure('Save File', 'Error', err.message)
-    }
-  )
+  return result
 }
 
 function handleAlias(alias: OptionResolved['alias'], moduleName: string) {
@@ -252,19 +251,10 @@ function wrapZjs(code: string, optionResolved: OptionResolved) {
   const manifest = optionResolved.manifest
   const insertTo = optionResolved.template.insertTo
 
- const exportsHelperString = `const exports = new Proxy({}, {
-    get(_target, key) {
-      zdjl.getVar(key)
-    },
-    set(_target, key, value) {
-      zdjl.setVar(key, value)
-      return true
-    }
-  })
-  zdjl.setVar('exports', exports)`
+  const exportsHelper = `const exports = new Proxy({}, { get: (_, key) => zdjl.getVar(key), set: (_, key, value) => (zdjl.setVar(key, value),!0)})`
 
   const format: Record<string, any>[] = []
-  const action = { type: "运行JS代码", jsCode: `"use strict";\n${exportsHelperString}\n${code}`, desc: "@vite", }
+  const action = { type: "运行JS代码", jsCode: `"use strict";\n${exportsHelper}\n${code}`, desc: "@vite", }
 
   if (optionResolved.template.filepath) {
     const zjs = formatFrom({ filepath: optionResolved.template.filepath })
